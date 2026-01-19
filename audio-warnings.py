@@ -52,10 +52,20 @@ def pick_player():
 def play_audio(path: str, player_cmd):
     if not player_cmd:
         raise SystemExit(
-            "[ERR] No audio player found (ffplay/mpg123/aplay/paplay).\n"
-            "      Install one, for example: sudo apt install ffmpeg\n"
+            "ERROR: No audio player found (ffplay/mpg123/aplay/paplay).\n"
+            "Install one, for example: sudo apt install ffmpeg\n"
         )
-    subprocess.run(player_cmd + [path], check=False)
+
+    p = subprocess.Popen(player_cmd + [path])
+    try:
+        p.wait()
+    except KeyboardInterrupt:
+        print("\n[WRN] Audio interrupted by user.")
+        p.terminate()
+        try:
+            p.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            p.kill()
 
 
 def main():
@@ -71,7 +81,12 @@ def main():
     if t2 <= t1:
         raise SystemExit("ERROR: t2 must be greater than t1")
 
+    # Select audio player and print
     player_cmd, _ = pick_player()
+    if player_cmd:
+        print(f"[INF] Using audio player: {' '.join(player_cmd)}")
+    else:
+        print("[ERR] No audio player found (ffplay/mpg123/aplay/paplay).")
 
     print(f"[INF] First warning:  {args.t1} -> {args.a1}")
     print(f"[INF] Second warning: {args.t2} -> {args.a2}")
